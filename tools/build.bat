@@ -56,7 +56,18 @@ if not exist "%GYP%" (
     exit /b -1
 )
 
-"%NODEEXE%" "%GYP%" configure build --msvs_version=2019 -%FLAVOR%
+"%NODEEXE%" "%GYP%" configure --msvs_version=2022 -%FLAVOR%
+if %ERRORLEVEL% neq 0 (
+    echo Error configuring edge.node %FLAVOR% for node.js %2 v%3
+    exit /b -1
+)
+
+FOR %%F IN (build\*.vcxproj) DO (
+    echo Patch node.lib in %%F
+    powershell -Command "(Get-Content -Raw %%F) -replace '\\\\node.lib', '\\\\libnode.lib' | Out-File -Encoding Utf8 %%F"
+)
+
+"%NODEEXE%" "%GYP%" build
 if %ERRORLEVEL% neq 0 (
     echo Error building edge.node %FLAVOR% for node.js %2 v%3
     exit /b -1

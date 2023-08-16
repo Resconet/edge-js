@@ -70,10 +70,10 @@ namespace EdgeJs
             return Task<object>.FromResult((object)null);
         }
 
-        [DllImport("node.dll", EntryPoint = "?Start@node@@YAHHQAPAD@Z", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libnode.dll", EntryPoint = "?Start@node@@YAHHQAPAD@Z", CallingConvention = CallingConvention.Cdecl)]
         static extern int NodeStartx86(int argc, string[] argv);
 
-        [DllImport("node.dll", EntryPoint = "?Start@node@@YAHHQEAPEAD@Z", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libnode.dll", EntryPoint = "?Start@node@@YAHHQEAPEAD@Z", CallingConvention = CallingConvention.Cdecl)]
         static extern int NodeStartx64(int argc, string[] argv);
 
         [DllImport("kernel32.dll", EntryPoint = "LoadLibrary")]
@@ -90,12 +90,12 @@ namespace EdgeJs
                         Func<int, string[], int> nodeStart;
                         if (IntPtr.Size == 4)
                         {
-                            LoadLibrary(AssemblyDirectory + @"\edge\x86\node.dll");
+                            LoadLibrary(AssemblyDirectory + @"\edge\x86\libnode.dll");
                             nodeStart = NodeStartx86;
                         }
                         else if (IntPtr.Size == 8)
                         {
-                            LoadLibrary(AssemblyDirectory + @"\edge\x64\node.dll");
+                            LoadLibrary(AssemblyDirectory + @"\edge\x64\libnode.dll");
                             nodeStart = NodeStartx64;
                         }
                         else

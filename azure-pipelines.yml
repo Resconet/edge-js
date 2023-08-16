@@ -1,0 +1,114 @@
+name: $(Date:yyMMdd)$(rev:-r)
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - resco
+
+pool:
+  vmImage: windows-latest
+
+parameters:
+- name: NodeVersion
+  type: string
+  default: 18.17.1
+  displayName: Node version
+
+resources:
+  repositories:
+  - repository: nodejs
+    endpoint: Resco GitHub
+    name: nodejs/node
+    ref: refs/tags/v${{ parameters.NodeVersion }}
+    type: github
+
+jobs:
+- job: build_nodejs
+  displayName: Build NodeJS
+  strategy:
+    matrix:
+      x64:
+        arch: x64
+      x86:
+        arch: x86
+  steps:
+  - checkout: nodejs
+    fetchDepth: 1
+    fetchTags: false
+
+  - script: choco install nasm -fy
+    displayName: Install Windows Assembler (NASM)
+
+  - task: BatchScript@1
+    displayName: Build NodeJS $(arch)
+    inputs:
+      filename: vcbuild.bat
+      arguments: release $(arch) dll
+
+  - script: |
+      move node.exe $(Build.ArtifactStagingDirectory)
+      move libnode.dll $(Build.ArtifactStagingDirectory)
+      move libnode.lib $(Build.ArtifactStagingDirectory)
+    displayName: Install NodeJS $(arch) Artifact
+    workingDirectory: Release
+
+  - publish: $(Build.ArtifactStagingDirectory)
+    displayName: Publish NodeJS $(arch) Artifact
+    artifact: node-js-$(arch)
+
+- job: build_edgejs
+  displayName: Build EdgeJS
+  dependsOn: build_nodejs
+  steps:
+  - checkout: self
+    fetchDepth: 1
+    fetchTags: false
+
+  - download: current
+    displayName: Download NodeJS Artifacts
+
+  - script: |
+      mkdir %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\ia32
+      move /Y $(Pipeline.Workspace)\node-js-x86\libnode.lib %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\ia32
+      mkdir %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
+      move /Y $(Pipeline.Workspace)\node-js-x64\libnode.lib %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
+      mkdir lib\native\win32\ia32\${{ parameters.NodeVersion }}
+      move $(Pipeline.Workspace)\node-js-x86\*.* lib\native\win32\ia32\${{ parameters.NodeVersion }}
+      mkdir lib\native\win32\x64\${{ parameters.NodeVersion }}
+      move $(Pipeline.Workspace)\node-js-x64\*.* lib\native\win32\x64\${{ parameters.NodeVersion }}
+    displayName: Install NodeJS
+
+  - task: Npm@1
+    displayName: Install Dependencies
+    inputs:
+      command: install
+
+  - task: DotNetCoreCLI@2
+    displayName: Build EdgeJS
+    inputs:
+      command: build
+      projects: src/double/Edge.js/Edge.js.csproj
+      arguments: -c Release -f net461
+
+  - script: npm install -g node-gyp
+    displayName: Install NodeJS Native Addon Tool
+
+  - task: BatchScript@1
+    displayName: Build EdgeJS Native Modules
+    inputs:
+      filename: tools/build.bat
+      arguments: release ${{ parameters.NodeVersion }}
+
+  - script: |
+      copy src\double\Edge.js\bin\Release\net461\EdgeJS.* $(Build.ArtifactStagingDirectory)
+      copy lib\*edge.js $(Build.ArtifactStagingDirectory)
+      mkdir $(Build.ArtifactStagingDirectory)\x86
+      copy lib\native\win32\ia32\${{ parameters.NodeVersion }}\*.node $(Build.ArtifactStagingDirectory)\x86
+      mkdir $(Build.ArtifactStagingDirectory)\x64
+      copy lib\native\win32\x64\${{ parameters.NodeVersion }}\*.node $(Build.ArtifactStagingDirectory)\x64
+    displayName: Install EdgeJS Artifact
+
+  - publish: $(Build.ArtifactStagingDirectory)
+    displayName: Publish EdgeJS Artifact
+    artifact: edge-js
