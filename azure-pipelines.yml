@@ -15,6 +15,14 @@ parameters:
   default: 18.17.1
   displayName: Node version
 
+- name: BuildConfiguration
+  type: string
+  default: Release
+  displayName: Build Configuration
+  values:
+  - Release
+  - Debug
+
 resources:
   repositories:
   - repository: nodejs
@@ -44,14 +52,15 @@ jobs:
     displayName: Build NodeJS $(arch)
     inputs:
       filename: vcbuild.bat
-      arguments: release $(arch) dll
+      arguments: ${{ parameters.BuildConfiguration }} $(arch) dll
 
   - script: |
       move node.exe $(Build.ArtifactStagingDirectory)
       move libnode.dll $(Build.ArtifactStagingDirectory)
       move libnode.lib $(Build.ArtifactStagingDirectory)
+      if ${{ parameters.BuildConfiguration }} == Debug move libnode.pdb $(Build.ArtifactStagingDirectory)
     displayName: Install NodeJS $(arch) Artifact
-    workingDirectory: Release
+    workingDirectory: ${{ parameters.BuildConfiguration }}
 
   - publish: $(Build.ArtifactStagingDirectory)
     displayName: Publish NodeJS $(arch) Artifact
@@ -89,7 +98,7 @@ jobs:
     inputs:
       command: build
       projects: src/double/Edge.js/Edge.js.csproj
-      arguments: -c Release -f net461
+      arguments: -c ${{ parameters.BuildConfiguration }} -f net461
 
   - script: npm install -g node-gyp
     displayName: Install NodeJS Native Addon Tool
@@ -98,10 +107,10 @@ jobs:
     displayName: Build EdgeJS Native Modules
     inputs:
       filename: tools/build.bat
-      arguments: release ${{ parameters.NodeVersion }}
+      arguments: ${{ parameters.BuildConfiguration }} ${{ parameters.NodeVersion }}
 
   - script: |
-      copy src\double\Edge.js\bin\Release\net461\EdgeJS.* $(Build.ArtifactStagingDirectory)
+      copy src\double\Edge.js\bin\${{ parameters.BuildConfiguration }}\net461\EdgeJS.* $(Build.ArtifactStagingDirectory)
       copy lib\*edge.js $(Build.ArtifactStagingDirectory)
       mkdir $(Build.ArtifactStagingDirectory)\x86
       copy lib\native\win32\ia32\${{ parameters.NodeVersion }}\*.node $(Build.ArtifactStagingDirectory)\x86
