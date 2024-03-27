@@ -1,0 +1,88 @@
+name: Main
+
+on: 
+  push:
+    paths-ignore:
+      - 'samples/*'
+      - 'stress/*'
+      - 'performance/*'
+      - '.github/FUNDING.YML'
+      - '**/*.md'
+      - '**/*.d.ts'
+      - '**/*.bat'
+      - '.travis.yml'
+      - 'Dockerfile'
+      - '.gitconfig'
+      - '.gitignore'
+      - 'appveyor.*'
+      - 'LICENSE*'
+      - '.idea/**'
+      - '.vscode/**'
+
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true # required to setup CSC
+
+jobs:
+  main:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-2019]
+        node: [21.x, 20.x, 18.x, 16.x]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ matrix.node }}'
+
+      - if: runner.os == 'Windows'  
+        name: Setup CSC for Windows
+        uses: yoavain/Setup-CSC@v5
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # SDK Version to use; x will use the latest version of the 8.0 channel
+
+      - if: runner.os == 'macOS'
+        name: Remove Mono from macOS # Mono interferes with Core CLR gyp compile
+        run: |
+          sudo rm -rf /Library/Frameworks/Mono.framework
+          sudo pkgutil --forget com.xamarin.mono-MDK.pkg
+          sudo rm /etc/paths.d/mono-commands
+
+      - if: runner.os == 'macOS' && matrix.node == '16.x'
+        name: Add missing packages for macOS NodeJs 16 # Mono interferes with Core CLR gyp compile
+        run: |
+          pip install setuptools
+ 
+      - name: npm install
+        run: npm i
+
+      - if: runner.os == 'Windows'
+        name: Run .NET 4.x tests
+        run: npm test
+      - if: runner.os == 'Windows'
+        name: Create .NET 4.x tests report
+        run: node tools/coverage.js
+
+      - name: "Run .net core tests"
+        run: npm test
+        env:
+          EDGE_USE_CORECLR: 1
+
+      - name: "Create .net core tests report"
+        run: node tools/coverage.js
+        env:
+          EDGE_USE_CORECLR: 1
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test results (${{ matrix.os }}, ${{ matrix.node }})  # Name of the check run which will be created
+          path: test-results.xml   # Path to test results
+          reporter: jest-junit     # Format of test results          
+

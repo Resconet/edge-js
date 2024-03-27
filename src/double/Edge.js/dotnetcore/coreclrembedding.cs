@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyModel;
-using DotNetRuntimeEnvironment = Microsoft.DotNet.InternalAbstractions.RuntimeEnvironment;
+using DotNetRuntimeEnvironment = Microsoft.DotNet.PlatformAbstractions.RuntimeEnvironment;
 using Semver;
 
 [StructLayout(LayoutKind.Sequential)]
@@ -236,18 +236,6 @@ public class CoreCLREmbedding
                 AddDependencies(dependencyContext, RuntimeEnvironment.StandaloneApplication);
             }
 
-            //string entryAssemblyPath = dependencyManifestFile.Replace(".deps.json", ".dll");
-
-            //if (File.Exists(entryAssemblyPath))
-            //{
-            //    Assembly entryAssembly = Assembly.Load(new AssemblyName(Path.GetFileNameWithoutExtension(entryAssemblyPath)));
-           //     Lazy<DependencyContext> defaultDependencyContext = new Lazy<DependencyContext>(() => DependencyContext.Load(entryAssembly));
-           //     dependencyContext = dependencyContext.Merge(defaultDependencyContext);
-
-                // I really don't like doing it this way, but it's the easiest way to give the running code access to the default dependency context data
-                //typeof(DependencyContext).GetField("_defaultContext", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, defaultDependencyContext);
-            //}
-
             DebugMessage("EdgeAssemblyResolver::LoadDependencyManifest (CLR) - Finished");
         }
 
@@ -255,39 +243,7 @@ public class CoreCLREmbedding
         {
             DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Adding dependencies for {0}", dependencyContext.Target.Framework);
 
-            foreach (CompilationLibrary compileLibrary in dependencyContext.CompileLibraries)
-            {
-
-                if (compileLibrary.Assemblies == null || compileLibrary.Assemblies.Count == 0)
-                {
-                    continue;
-                }
-
-                DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Processing compile dependency {0}", compileLibrary.Name);
-
-                string assemblyPath;
-                if (standalone && File.Exists(Path.Combine(RuntimeEnvironment.ApplicationDirectory, "refs", Path.GetFileName(compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar)))))
-                    assemblyPath = Path.Combine(RuntimeEnvironment.ApplicationDirectory, "refs", Path.GetFileName(compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar)));
-                else 
-                {
-                    assemblyPath = Path.Combine(_packagesPath, compileLibrary.Name.ToLower(), compileLibrary.Version, compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar).ToLower());
-                    if(!File.Exists(assemblyPath))                                 
-                        assemblyPath = Path.Combine(_packagesPath, compileLibrary.Name.ToLower(), compileLibrary.Version, compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar));
-                }
-                if (!CompileAssemblies.ContainsKey(compileLibrary.Name))
-                {
-                    if (File.Exists(assemblyPath))
-                    {
-                        CompileAssemblies[compileLibrary.Name] = assemblyPath;
-                        DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Added compile assembly {0}", assemblyPath);
-                    }
-                }
-
-                else
-                {
-                    DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Already present in the compile assemblies list, skipping");
-                }
-            }
+            AddCompileDependencies(dependencyContext, standalone);
 
             Dictionary<string, string> supplementaryRuntimeLibraries = new Dictionary<string, string>();
 
@@ -379,7 +335,11 @@ public class CoreCLREmbedding
                         DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Already present in the compile assemblies list, skipping");
                     }
                 }
-
+                else
+                {
+                    AddRuntimeDependency(runtimeLibrary);
+                }
+                
                 foreach (string libraryName in supplementaryRuntimeLibraries.Keys)
                 {
                     if (!_libraries.ContainsKey(libraryName))
@@ -419,6 +379,79 @@ public class CoreCLREmbedding
                         }
 						
                     }
+                }
+            }
+        }
+
+        private void AddRuntimeDependency(RuntimeLibrary runtimeLibrary)
+        {
+            DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Processing runtime dependency {0} using runtime path", runtimeLibrary.Name);
+            
+            if (!CompileAssemblies.ContainsKey(runtimeLibrary.Name))
+            {
+                var asset = runtimeLibrary.Name;
+                if (!asset.EndsWith(".dll"))
+                {
+                    asset += ".dll";
+                }
+                
+                var runtimePath = Path.GetDirectoryName(RuntimeEnvironment.RuntimePath);
+                
+                var assemblyPath = Path.Combine(runtimePath, Path.GetFileName(asset));
+                if (File.Exists(assemblyPath))
+                {
+                    CompileAssemblies[runtimeLibrary.Name] = assemblyPath;
+                    DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Added runtime assembly {0}", assemblyPath);
+                }
+                else
+                {
+                    DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Could not add runtime dependency {0}", assemblyPath);
+                }
+            }
+            else
+            {
+                DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Already present in runtime dependency list, skipping");
+            }
+        }
+
+        private void AddCompileDependencies(DependencyContext dependencyContext, bool standalone)
+        {
+            foreach (CompilationLibrary compileLibrary in dependencyContext.CompileLibraries)
+            {
+                if (compileLibrary.Assemblies == null || compileLibrary.Assemblies.Count == 0)
+                {
+                    continue;
+                }
+
+                DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Processing compile dependency {0}", compileLibrary.Name);
+
+                string assemblyPath;
+
+                if (standalone && File.Exists(Path.Combine(RuntimeEnvironment.ApplicationDirectory, "refs", Path.GetFileName(compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar)))))
+                    assemblyPath = Path.Combine(RuntimeEnvironment.ApplicationDirectory, "refs", Path.GetFileName(compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar)));
+                else 
+                {
+                    assemblyPath = Path.Combine(_packagesPath, compileLibrary.Name.ToLower(), compileLibrary.Version, compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar).ToLower());
+                    if(!File.Exists(assemblyPath))                                 
+                        assemblyPath = Path.Combine(_packagesPath, compileLibrary.Name.ToLower(), compileLibrary.Version, compileLibrary.Assemblies[0].Replace('/', Path.DirectorySeparatorChar));
+                }
+
+                if (!CompileAssemblies.ContainsKey(compileLibrary.Name))
+                {
+                    if (File.Exists(assemblyPath))
+                    {
+                        CompileAssemblies[compileLibrary.Name] = assemblyPath;
+                        DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Added compile assembly {0}", assemblyPath);
+                    }
+                    else
+                    {
+                        DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Could not add compile assembly {0}", assemblyPath);
+                    }
+                }
+
+                else
+                {
+                    DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Already present in the compile assemblies list, skipping");
                 }
             }
         }
@@ -685,11 +718,27 @@ public class CoreCLREmbedding
             object compilerInstance = Activator.CreateInstance(compilerType);
 
             DebugMessage("CoreCLREmbedding::CompileFunc (CLR) - Starting compilation");
-            Func<object, Task<object>> compiledFunction = (Func<object, Task<object>>)compileMethod.Invoke(compilerInstance, new object[]
+            var parameters =  compileMethod.GetParameters();
+
+            Func<object, Task<object>> compiledFunction;
+            // edge-cs compiler expects 2 parameters while most other compilers only expect 'options'
+            // not ideal if there are more compilers that need different arguments, should be revisited in the future
+            if (parameters.Length == 1)
             {
-                options,
-                Resolver.CompileAssemblies
-            });
+                compiledFunction = (Func<object, Task<object>>)compileMethod.Invoke(compilerInstance, new object[]
+                {
+                    options
+                });
+            }
+            else
+            {
+                compiledFunction = (Func<object, Task<object>>)compileMethod.Invoke(compilerInstance, new object[]
+                {
+                    options,
+                    Resolver.CompileAssemblies
+                });
+                
+            }
             DebugMessage("CoreCLREmbedding::CompileFunc (CLR) - Compilation complete");
 
             GCHandle handle = GCHandle.Alloc(compiledFunction);

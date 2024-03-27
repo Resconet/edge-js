@@ -147,7 +147,7 @@
                 '/wd4506',
                 '/DHAVE_CORECLR',
                 '/D_NO_ASYNCRTIMP',
-                '/D_HAS_EXCEPTIONS'
+                '/D_HAS_EXCEPTIONS',
                 '/EHsc'
               ]
             },
@@ -341,7 +341,7 @@
                         'lib/bootstrap/*.cs'
                       ],
                       'outputs': [
-                        'lib/bootstrap/bin/$(BUILDTYPE)/netcoreapp1.1/bootstrap.dll'
+                        'lib/bootstrap/bin/$(BUILDTYPE)/netcoreapp3.1/bootstrap.dll'
                       ],
                       'action': [
                         'bash',
