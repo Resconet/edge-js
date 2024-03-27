@@ -12,7 +12,7 @@ pool:
 parameters:
 - name: NodeVersion
   type: string
-  default: 20.11.0
+  default: 20.12.0
   displayName: Node version
 
 - name: BuildConfiguration
@@ -88,6 +88,11 @@ jobs:
       move $(Pipeline.Workspace)\node-js-x64\*.* lib\native\win32\x64\${{ parameters.NodeVersion }}
     displayName: Install NodeJS
 
+  - task: NodeTool@0
+    displayName: Use Node.js 20.x
+    inputs:
+      versionSpec: 20.x
+
   - task: Npm@1
     displayName: Install Dependencies
     inputs:
@@ -98,7 +103,7 @@ jobs:
     inputs:
       command: build
       projects: src/double/Edge.js/Edge.js.csproj
-      arguments: -c ${{ parameters.BuildConfiguration }} -f net461
+      arguments: -c ${{ parameters.BuildConfiguration }} -f net462
 
   - script: npm install -g node-gyp
     displayName: Install NodeJS Native Addon Tool
