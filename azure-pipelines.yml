@@ -12,7 +12,7 @@ pool:
 parameters:
 - name: NodeVersion
   type: string
-  default: 20.14.0
+  default: 20.15.0
   displayName: Node version
 
 - name: BuildConfiguration
@@ -115,12 +115,13 @@ jobs:
       arguments: ${{ parameters.BuildConfiguration }} ${{ parameters.NodeVersion }}
 
   - script: |
+      set ver=${{ parameters.NodeVersion }}
       copy src\double\Edge.js\bin\${{ parameters.BuildConfiguration }}\net462\EdgeJS.* $(Build.ArtifactStagingDirectory)
       copy lib\*edge.js $(Build.ArtifactStagingDirectory)
       mkdir $(Build.ArtifactStagingDirectory)\x86
-      copy lib\native\win32\ia32\${{ parameters.NodeVersion }}\*.node $(Build.ArtifactStagingDirectory)\x86
+      copy lib\native\win32\ia32\%ver:~0,2%\*.node $(Build.ArtifactStagingDirectory)\x86
       mkdir $(Build.ArtifactStagingDirectory)\x64
-      copy lib\native\win32\x64\${{ parameters.NodeVersion }}\*.node $(Build.ArtifactStagingDirectory)\x64
+      copy lib\native\win32\x64\%ver:~0,2%\*.node $(Build.ArtifactStagingDirectory)\x64
     displayName: Install EdgeJS Artifact
 
   - publish: $(Build.ArtifactStagingDirectory)
