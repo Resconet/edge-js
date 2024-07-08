@@ -12,7 +12,7 @@ pool:
 parameters:
 - name: NodeVersion
   type: string
-  default: 20.15.0
+  default: 20.15.1
   displayName: Node version
 
 - name: BuildConfiguration
