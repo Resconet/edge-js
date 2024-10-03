@@ -3,6 +3,7 @@ set SELF=%~dp0
 if "%1" equ "" (
     echo Usage: build.bat debug^|release "{version}"
     echo e.g. build.bat release "20.12.2"
+    echo e.g. build.bat release "20"
     exit /b -1
 )
 FOR /F "tokens=* USEBACKQ" %%F IN (`node -p process.arch`) DO (SET ARCH=%%F)
@@ -20,7 +21,21 @@ if not exist "%NODEEXE%" (
 )
 for %%i in ("%NODEEXE%") do set NODEDIR=%%~dpi
 SET DESTDIRROOT=%SELF%\..\lib\native\win32
+
 set VERSION=%1
+
+if %MAJORVERSION% equ %VERSION% (
+    echo Getting latest version of Node.js v%1
+    FOR /F "tokens=* USEBACKQ" %%F IN (`node "%SELF%\getVersion.js" "%VERSION%"`) DO (SET VERSION=%%F)
+) 
+
+if %MAJORVERSION% equ %VERSION% (
+    echo Cannot determine Node.js version for %VERSION%
+    exit /b -1
+)
+
+echo Building Node.js v%VERSION%
+
 pushd %SELF%\..
 
 if "%ARCH%" == "arm64" (
@@ -37,10 +52,12 @@ exit /b 0
 
 set DESTDIR=%DESTDIRROOT%\%1\%MAJORVERSION%
 if not exist "%DESTDIR%" mkdir "%DESTDIR%"
-type NUL > %DESTDIR%\v%VERSION%
+type NUL > %DESTDIR%\node.version
+echo %VERSION%> %DESTDIR%\node.version
 
-if exist "%DESTDIR%\node.exe" goto gyp
-echo Downloading node.exe %2 %3...
+rem if exist "%DESTDIR%\node.exe" goto gyp
+
+echo Downloading node.exe %2 %3
 node "%SELF%\download.js" %2 %3 "%DESTDIR%"
 if %ERRORLEVEL% neq 0 (
     echo Cannot download node.exe %2 v%3
@@ -73,8 +90,8 @@ FOR %%F IN (build\*.vcxproj) DO (
 REM Conflict when building arm64 binaries
 if "%ARCH%" == "arm64" (
     FOR %%F IN (build\*.vcxproj) DO (
-    echo Patch /fp:strict in %%F
-    powershell -Command "(Get-Content -Raw %%F) -replace '<FloatingPointModel>Strict</FloatingPointModel>', '<!-- <FloatingPointModel>Strict</FloatingPointModel> -->' | Out-File -Encoding Utf8 %%F"
+        echo Patch /fp:strict in %%F
+        powershell -Command "(Get-Content -Raw %%F) -replace '<FloatingPointModel>Strict</FloatingPointModel>', '<!-- <FloatingPointModel>Strict</FloatingPointModel> -->' | Out-File -Encoding Utf8 %%F"
     )
 )
 
@@ -86,7 +103,7 @@ if %ERRORLEVEL% neq 0 (
     echo Error copying edge.node %FLAVOR% for node.js %2 v%3
     exit /b -1
 )
-
+rmdir /S /Q .\build\
 copy /y "%DESTDIR%\..\*.dll" "%DESTDIR%"
 if %ERRORLEVEL% neq 0 (
     echo Error copying VC redist %FLAVOR% to %DESTDIR%

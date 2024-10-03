@@ -1,8 +1,10 @@
 # Edge.js: .NET and Node.js in-process
 <!---[![Build Status](https://app.travis-ci.com/agracio/edge-js.svg?branch=master)](https://app.travis-ci.com/github/agracio/edge-js)--->
 [![Build status][appveyor-image]][appveyor-url]
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/agracio/edge-js.svg?style=shield )](https://dl.circleci.com/status-badge/redirect/gh/agracio/edge-js/tree/master)
+[![Actions Status](https://github.com/agracio/edge-js/workflows/Test/badge.svg)](https://github.com/agracio/edge-js/actions)
 [![NPM Downloads][downloads-image]][downloads-url]
-[![Codacy Badge][codacy-img]][codacy-url]
+<!-- [![Codacy Badge][codacy-img]][codacy-url] -->
 [![Git Issues][issues-img]][issues-url]
 [![Closed Issues][closed-issues-img]][closed-issues-url]
 <!-- ![Node version](https://img.shields.io/node/v/edge-js.svg) -->
@@ -57,6 +59,11 @@ Read more about the background and motivations of the project [here](http://toma
 ## Electron
 
 For use with Electron **[`electron-edge-js`](https://github.com/agracio/electron-edge-js)**
+
+## VS Code extensions
+
+VS Code uses Electron shell, to write extensions for it using Edge.js use 
+**[`electron-edge-js`](https://github.com/agracio/electron-edge-js)**
 
 ## Quick start
 
@@ -118,6 +125,7 @@ Mono tests are excluded from CI.
 
 When packaging your application using Webpack make sure that `edge-js` is specified as external module.
 
+### Webpack
 ```js
   externals: {
     'edge-js': 'commonjs2 edge-js',
@@ -125,6 +133,15 @@ When packaging your application using Webpack make sure that `edge-js` is specif
   node: {
     __dirname: true,
     __filename: true,
+  },
+```
+
+### Next.js
+
+`next.config.mjs`
+```js
+  experimental: {
+    serverComponentsExternalPackages: ['edge-js'],
   },
 ```
 
@@ -1783,7 +1800,7 @@ class Program
                 var wss = new WebSocketServer({ port: port });
                 wss.on('connection', function (ws) {
                     ws.on('message', function (message) {
-                        ws.send(message.toUpperCase());
+                        ws.send(message.toString().toUpperCase());
                     });
                     ws.send('Hello!');
                 });
@@ -1802,10 +1819,10 @@ class Program
 }
 ```
 
-This WebSocket server sends a *Hello* message to the client when a new connection is established, and then echos a capitalized version of every message it receives back to the client. You can test this webserver with the `wscat` tool included with the `ws` module. To make it convenient to use, first install the `ws` module globally:
+This WebSocket server sends a *Hello* message to the client when a new connection is established, and then echos a capitalized version of every message it receives back to the client. You can test this webserver with the `wscat` tool, first install the `wscat` module globally:
 
 ```
-npm install ws -g
+npm install -g wscat
 ```
 
 Then start the .NET application containing the WebSocket server and establish a connection to it with `wscat`:

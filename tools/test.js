@@ -12,6 +12,10 @@ const marge = require('mochawesome-report-generator')
 
 var runner = process.argv[2];
 
+if (process.platform !== 'win32') {
+    process.env.EDGE_USE_CORECLR = 1
+}
+
 if(process.argv[3] === 'coreclr'){
     process.env.EDGE_USE_CORECLR = 1
 }
@@ -70,6 +74,22 @@ function runOnSuccess(code, signal) {
 
 		process.env['EDGE_APP_ROOT'] = path.join(testDir, 'bin', 'Debug', 'net6.0');
 
+        if(runner === 'all')
+        {
+            if(fs.existsSync(`./test/mochawesome-report/mochawesome-net.json`) && !process.env.EDGE_USE_CORECLR){
+                fs.unlinkSync(`./test/mochawesome-report/mochawesome-net.json`)
+            }
+            if(fs.existsSync(`./test/mochawesome-report/mochawesome-coreclr.json`) && process.env.EDGE_USE_CORECLR){
+                fs.unlinkSync(`./test/mochawesome-report/mochawesome-coreclr.json`)
+            }
+            if(fs.existsSync(`./test/mochawesome-report/mochawesome.json`)){
+                fs.unlinkSync(`./test/mochawesome-report/mochawesome.json`)
+            }   
+            if(fs.existsSync(`./test/mochawesome-report/mochawesome.html`)){
+                fs.unlinkSync(`./test/mochawesome-report/mochawesome.html`)
+            }   
+        }
+
         if(!runner)
         {
             spawn('node', [mocha, testDir, '-R', 'spec', '-t', '10000', '-n', 'expose-gc'], { 
@@ -102,7 +122,7 @@ function runOnSuccess(code, signal) {
             {
                 if(!process.env.EDGE_USE_CORECLR){
                     process.env.EDGE_USE_CORECLR = 1;
-                    runOnSuccess(code, signal);
+                    runOnSuccess(0, signal);
                 }
                 else{
                     mergeFiles();
@@ -113,7 +133,7 @@ function runOnSuccess(code, signal) {
             }
 		}).on('error', function(err) {
 			console.log(err); 
-		});;
+		});
 	}
 }
 
@@ -153,7 +173,7 @@ function mergeFiles(){
 
     const margeOptions = {
         reportFilename: 'mochawesome.html',
-        reportDir: './test/mochawesome-report'
+        reportDir: runner === 'CI' || runner === 'circleci' ? './' : './test/mochawesome-report'
     }
       
     mochawesomeMerge.merge(options).then(report => {
@@ -163,6 +183,6 @@ function mergeFiles(){
         if(runner === 'all')
         {
             marge.create(report, margeOptions).then(() => console.log(`Mochawesome report created: ${margeOptions.reportDir}/${margeOptions.reportFilename}`))
-        }
+        }    
     })
 }
