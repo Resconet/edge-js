@@ -1,11 +1,12 @@
 @echo off
 set SELF=%~dp0
 if "%1" equ "" (
-    echo Usage: build.bat debug^|release "{version}"
-    echo e.g. build.bat release "20.12.2"
-    echo e.g. build.bat release "20"
+    echo Usage: build.bat debug^|release {version}
+    echo e.g. build.bat release 20.12.2
+    echo e.g. build.bat release 20
     exit /b -1
 )
+rmdir /S /Q ..\build\
 FOR /F "tokens=* USEBACKQ" %%F IN (`node -p process.arch`) DO (SET ARCH=%%F)
 for /F "delims=." %%a in ("%2") do set MAJORVERSION=%%a
 set MAJORVERSION=%MAJORVERSION: =%
@@ -41,7 +42,9 @@ pushd %SELF%\..
 if "%ARCH%" == "arm64" (
     call :build arm64 arm64 %VERSION%
 ) else (
-    call :build ia32 x86 %VERSION%
+    if %MAJORVERSION% LSS 23 (
+        call :build ia32 x86 %VERSION%
+    )
     call :build x64 x64 %VERSION%
 )
 popd
@@ -52,8 +55,6 @@ exit /b 0
 
 set DESTDIR=%DESTDIRROOT%\%1\%MAJORVERSION%
 if not exist "%DESTDIR%" mkdir "%DESTDIR%"
-type NUL > %DESTDIR%\node.version
-echo %VERSION%> %DESTDIR%\node.version
 
 rem if exist "%DESTDIR%\node.exe" goto gyp
 
@@ -96,6 +97,9 @@ if "%ARCH%" == "arm64" (
 )
 
 "%NODEEXE%" "%GYP%" build
+
+type NUL > %DESTDIR%\node.version
+echo %VERSION%> %DESTDIR%\node.version
 
 echo %DESTDIR%
 copy /y .\build\%FLAVOR%\edge_*.node "%DESTDIR%"

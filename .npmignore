@@ -104,3 +104,10 @@ test/mochawesome-report
 mochawesome-report
 mochawesome.json
 .circleci
+*.sln
+xunit*.*
+getVersion*.js
+*.vcxproj
+*.zip
+CMakeLists.txt
+CMake/

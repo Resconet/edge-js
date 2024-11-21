@@ -1,15 +1,15 @@
 # Edge.js: .NET and Node.js in-process
 <!---[![Build Status](https://app.travis-ci.com/agracio/edge-js.svg?branch=master)](https://app.travis-ci.com/github/agracio/edge-js)--->
 [![Build status][appveyor-image]][appveyor-url]
+[![Actions Status][github-img]][github-url]
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/agracio/edge-js.svg?style=shield )](https://dl.circleci.com/status-badge/redirect/gh/agracio/edge-js/tree/master)
-[![Actions Status](https://github.com/agracio/edge-js/workflows/Test/badge.svg)](https://github.com/agracio/edge-js/actions)
-[![NPM Downloads][downloads-image]][downloads-url]
-<!-- [![Codacy Badge][codacy-img]][codacy-url] -->
 [![Git Issues][issues-img]][issues-url]
 [![Closed Issues][closed-issues-img]][closed-issues-url]
+<!-- [![NPM Downloads][downloads-img]][downloads-url] -->
 <!-- ![Node version](https://img.shields.io/node/v/edge-js.svg) -->
 <!-- [![deps status][dependencies-img]][dependencies-url] -->
 <!--[![MIT license][license-img]][license-url] -->
+<!-- [![Codacy Badge][codacy-img]][codacy-url] -->
 
 -----
 ### This library is based on https://github.com/tjanczuk/edge all credit for original work goes to Tomasz Janczuk. 
@@ -70,29 +70,30 @@ VS Code uses Electron shell, to write extensions for it using Edge.js use
 Sample app that shows how to work with .NET Core using inline code and compiled C# libraries.  
 https://github.com/agracio/edge-js-quick-start
 
-## Node.Js Support
+## Node.js Support
 
 ### Windows
 
-| Version | x86/x64            | arm64              |
-| ------- | ------------------ | ------------------ |
-| 16.x    | :heavy_check_mark: | :x:                |
-| 18.x    | :heavy_check_mark: | :x:                |
-| 20.x    | :heavy_check_mark: | :heavy_check_mark: |
-| 22.x    | :heavy_check_mark: | :heavy_check_mark: |
+| Version | x86                | x64                | arm64              |
+| ------- | ------------------ | ------------------ | ------------------ |
+| 16.x    | :heavy_check_mark: | :heavy_check_mark: | :x:                |
+| 18.x    | :heavy_check_mark: | :heavy_check_mark: | :x:                |
+| 20.x    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| 22.x    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| 23.x    | :x:                | :heavy_check_mark: | :heavy_check_mark: |
 
 
 ### macOS
 
 | Version        | x64                | arm64 (M1+)        |
 | -------------- | ------------------ | ------------------ |
-| 16.x - 22.x    | :heavy_check_mark: | :heavy_check_mark: |
+| 16.x - 23.x    | :heavy_check_mark: | :heavy_check_mark: |
 
 ### Linux
 
 | Version        | x64                | arm64              |
 | -------------- | ------------------ | ------------------ |
-| 14.x - 22.x    | :heavy_check_mark: | :heavy_check_mark: |
+| 14.x - 23.x    | :heavy_check_mark: | :heavy_check_mark: |
 
 ## Scripting CLR from Node.js and Node.js from CRL 
 
@@ -776,7 +777,9 @@ set EDGE_APP_ROOT=c:\DotNet\MyProject\bin\Release\netstandard1.6
 node app.js
 ```
 
-Edge.js also supports running published .NET Core applications on servers that do not have the .NET Core SDK and CLI installed, which is a common scenario in production environments.  To do so, the `.csproj` for your application should meet the following requirements:
+When calling a compiled assembly, Edge.js supports running with only the .NET runtime installed (and not the SDK or CLI). In this case a `appname.runtimeconfig.json` has to be created when building the project an present in your `EDGE_APP_ROOT` directory. `<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>`should be present under `<PropertyGroup>` in your `.csproj`file to create this file.
+
+Edge.js also supports running published .NET Core applications on servers that do not have the .NET Core SDK and CLI or .NET runtime installed, which is a common scenario in production environments.  To do so, the `.csproj` for your application should meet the following requirements:
 
  1. It should target the `netcoreapp2.x` or `netstandard2.0` framework moniker.
  2. It should reference `Microsoft.NETCore.DotNetHost` and `Microsoft.NETCore.DotNetHostPolicy`.  This is required so that the publish process can provide all the native libraries required to create a completely standalone version of your application.
@@ -1477,20 +1480,19 @@ Read more about [performance of Edge.js on the wiki](https://github.com/tjanczuk
 
 ### Building on Windows
 
-You must have Visual Studio 2019* toolset, Python 3.6.x, and node-gyp installed for building.
+You must have Visual Studio 2022* toolset, Python 3.6.x, and node-gyp installed for building.
 
 To build and test the project against all supported versions of Node.js in x86 and x64 flavors, run the following:
 
 ```
 tools\buildall.bat
-test\testall.bat
 ```
 
 To build one of the versions of Node.js officially released by [Node.js](http://nodejs.org/dist), do the following:
 
 ```
 cd tools
-build.bat release 8.10.0
+build.bat release 20.10.0
 ```
 
 Note: the Node.js version number you provide must be version number corresponding to one of the subdirectories of http://nodejs.org/dist. The command will build both x32 and x64 architectures (assuming you use x64 machine). The command will also copy the edge\_\*.node executables to appropriate locations under lib\native directory where they are looked up from at runtime. The `npm install` step copies the C standard library shared DLL to the location of the edge\_\*.node files for the component to be ready to go.
@@ -1499,7 +1501,7 @@ To build the C++\CLI native extension using the version of Node.js installed on 
 
 ```
 npm install -g node-gyp
-node-gyp configure --msvs_version=2015
+node-gyp configure --msvs_version=2022
 node-gyp build -debug
 ```
 
@@ -2014,8 +2016,8 @@ Issues? Feedback? You [know what to do](https://github.com/agracio/edge-js/issue
 [dependencies-url]: https://www.npmjs.com/package/edge-js?activeTab=dependencies
 [dependencies-img]: https://img.shields.io/librariesio/release/npm/edge-js.svg?style=flat-square
 
-[downloads-image]: https://img.shields.io/npm/dw/edge-js.svg?style=flat-square
-[downloads-url]: https://img.shields.io/npm/dw/edge-js.svg
+[downloads-img]: https://img.shields.io/npm/d18m/edge-js.svg?style=flat-square
+[downloads-url]: https://img.shields.io/npm/d18m/edge-js.svg
 
 [appveyor-image]:https://ci.appveyor.com/api/projects/status/3hs8xq7jieufw507/branch/master?svg=true
 [appveyor-url]:https://ci.appveyor.com/project/agracio/edge-js/branch/master
@@ -2023,12 +2025,15 @@ Issues? Feedback? You [know what to do](https://github.com/agracio/edge-js/issue
 [license-url]: https://github.com/agracio/edge-js/blob/master/LICENSE
 [license-img]: https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square
 
-[issues-img]: https://img.shields.io/github/issues/agracio/edge-js.svg?style=flat-square
+[issues-img]: https://img.shields.io/github/issues-raw/agracio/edge-js.svg?style=flat-square
 [issues-url]: https://github.com/agracio/edge-js/issues
 [closed-issues-img]: https://img.shields.io/github/issues-closed-raw/agracio/edge-js.svg?style=flat-square&color=brightgreen
 [closed-issues-url]: https://github.com/agracio/edge-js/issues?q=is%3Aissue+is%3Aclosed
 
 [codacy-img]: https://app.codacy.com/project/badge/Grade/3833e15b273d4add8d2030764e8977d9
 [codacy-url]: https://app.codacy.com/gh/agracio/edge-js/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade
+
+[github-img]: https://github.com/agracio/edge-js/workflows/Test/badge.svg
+[github-url]: https://github.com/agracio/edge-js/actions/workflows/main.yml
 
 
