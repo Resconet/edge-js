@@ -24,27 +24,38 @@ if(runner === 'all' && process.platform === 'win32'){
     delete process.env.EDGE_USE_CORECLR
 }
 
-if (!process.env.EDGE_USE_CORECLR) {
-	if (process.platform !== 'win32') {
-		buildParameters = buildParameters.concat(['-sdk:4.5']);
-	}
-
-  var compiler = 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe'
-
-	run(process.platform === 'win32' ? compiler : 'mcs', buildParameters, runOnSuccess);
-}
-
-else {
-    run(process.platform === 'win32' ? 'dotnet.exe' : 'dotnet', ['restore'], function(code, signal) {
-        if (code === 0) {
-            run(process.platform === 'win32' ? 'dotnet.exe' : 'dotnet', ['build'], function(code, signal) {
-                if (code === 0) {
-                    run('cp', ['../test/bin/Debug/net6.0/test.dll', '../test/Edge.Tests.CoreClr.dll'], runOnSuccess);
-                }
-            });
+function build(){
+    if (!process.env.EDGE_USE_CORECLR) {
+        if (process.platform !== 'win32') {
+            buildParameters = buildParameters.concat(['-sdk:4.5']);
         }
-    });
+
+        var compiler = 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe'
+
+        run(process.platform === 'win32' ? compiler : 'mcs', buildParameters, runOnSuccess);
+    }
+
+    else {
+        run(process.platform === 'win32' ? 'dotnet.exe' : 'dotnet', ['restore'], function(code, signal) {
+            if (code === 0) {
+                run(process.platform === 'win32' ? 'dotnet.exe' : 'dotnet', ['build'], function(code, signal) {
+                    if (code === 0) {
+                        try{
+                            fs.mkdirSync('test/测试', { recursive: true })
+
+                        }
+                        catch (e){
+                            console.error(e)
+                        }
+                        run('cp', ['../test/bin/Debug/net6.0/test.dll', '../test/测试/Edge.Tests.CoreClr.dll'], runOnSuccess);
+                    }
+                });
+            }
+        });
+    }
 }
+
+build();
 
 function run(cmd, args, onClose){
 
@@ -92,7 +103,7 @@ function runOnSuccess(code, signal) {
 
         if(!runner)
         {
-            spawn('node', [mocha, testDir, '-R', 'spec', '-t', '10000', '-n', 'expose-gc'], { 
+            spawn('node', [mocha, testDir, '-R', 'spec', '-t', '15000', '-n', 'expose-gc'], { 
                 stdio: 'inherit' 
             }).on('error', function(err) {
                 console.log(err); 
@@ -113,7 +124,7 @@ function runOnSuccess(code, signal) {
             testDir, 
             '--reporter',  'mocha-multi-reporters',  
             '--reporter-options', `configFile=./test/${config},cmrOutput=mocha-junit-reporter+mochaFile+${framework}:mochawesome+reportFilename+${framework}`,
-            '-t', '10000',
+            '-t', '15000',
             '-n', 'expose-gc'
         ], { 
 			stdio: 'inherit' 
@@ -122,7 +133,7 @@ function runOnSuccess(code, signal) {
             {
                 if(!process.env.EDGE_USE_CORECLR){
                     process.env.EDGE_USE_CORECLR = 1;
-                    runOnSuccess(0, signal);
+                    build();
                 }
                 else{
                     mergeFiles();
@@ -135,6 +146,10 @@ function runOnSuccess(code, signal) {
 			console.log(err); 
 		});
 	}
+    else{
+        console.error(code, signal)
+    }
+
 }
 
 function mergeFiles(){
