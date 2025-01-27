@@ -6,13 +6,10 @@ trigger:
     include:
       - resco
 
-pool:
-  vmImage: windows-latest
-
 parameters:
 - name: NodeVersion
   type: string
-  default: 20.18.1
+  default: 22.13.1
   displayName: Node version
 
 - name: BuildConfiguration
@@ -34,6 +31,10 @@ resources:
 jobs:
 - job: build_nodejs
   displayName: Build NodeJS
+  pool: Default
+  timeoutInMinutes: 0
+  workspace:
+    clean: all
   strategy:
     matrix:
       x64:
@@ -44,9 +45,6 @@ jobs:
   - checkout: nodejs
     fetchDepth: 1
     fetchTags: false
-
-  - script: choco install nasm -fy
-    displayName: Install Windows Assembler (NASM)
 
   - task: BatchScript@1
     displayName: Build NodeJS $(arch)
@@ -69,6 +67,8 @@ jobs:
 - job: build_edgejs
   displayName: Build EdgeJS
   dependsOn: build_nodejs
+  pool:
+    vmImage: windows-latest
   steps:
   - checkout: self
     fetchDepth: 1
@@ -89,9 +89,9 @@ jobs:
     displayName: Install NodeJS
 
   - task: NodeTool@0
-    displayName: Use Node.js 20.x
+    displayName: Use Node.js 22.x
     inputs:
-      versionSpec: 20.x
+      versionSpec: 22.x
 
   - task: Npm@1
     displayName: Install Dependencies
