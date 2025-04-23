@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         # os: [macos-13, macos-15]
-        os: [windows-2022, macos-13, macos-15]
+        os: [windows-2022, windows-2025, macos-13, macos-15]
       fail-fast: true
        
     name: build node-${{ inputs.build-version }} ${{ matrix.os }}
@@ -43,13 +43,32 @@ jobs:
           node: ${{ inputs.build-version }}
           os: ${{ matrix.os }}
 
+
+  upload-artifacts:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      fail-fast: false
+
+    name: upload artifacts node-${{ inputs.build-version }}
+    steps:
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact/merge@v4
+        if: success()
+        with:
+          name: edge-js-${{ inputs.build-version }}
+  
   test:
     runs-on: ${{ matrix.os }}
     needs: build
     strategy:
       matrix:
         # os: [macos-13, macos-15]
-        os: [windows-2022, macos-13, macos-15]
+        os: [windows-2022, windows-2025, macos-13, macos-15]
       fail-fast: false
 
     name: test node-${{ inputs.build-version }} ${{ matrix.os }}

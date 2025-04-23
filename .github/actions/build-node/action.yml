@@ -14,9 +14,18 @@ runs:
   steps:
 
       - name: Setup env
+        if: inputs.os == 'windows-2022'
         uses: ./.github/actions/setup-env
         with:
-          node: 20
+          node: 22
+          os: ${{ inputs.os }}
+          arch: 'x86'
+
+      - name: Setup env
+        if: inputs.os != 'windows-2022'
+        uses: ./.github/actions/setup-env
+        with:
+          node: 22
           os: ${{ inputs.os }}
 
       - name: Get latest Node.js version for v${{ inputs.node }}
@@ -37,10 +46,12 @@ runs:
           script: |
             try {
               const fs = require('fs')
-              if('${{ runner.os }}' == 'Windows'){
+              if('${{ runner.os }}' == 'Windows' && '${{ inputs.os }}' == 'windows-2022'){
                 if(${{ inputs.node }} <23){
                   fs.mkdirSync('release/win32/ia32/${{ inputs.node }}', { recursive: true });
                 }
+              }
+              else if('${{ runner.os }}' == 'Windows' && '${{ inputs.os }}' == 'windows-2025'){
                 fs.mkdirSync('release/win32/x64/${{ inputs.node }}', { recursive: true });
                 if(${{ inputs.node }} >=20){
                   fs.mkdirSync('release/win32/arm64/${{ inputs.node }}', { recursive: true });
@@ -64,16 +75,18 @@ runs:
           script: |
             try {
               const fs = require('fs')
-              if('${{ runner.os }}' == 'Windows'){
+              if('${{ runner.os }}' == 'Windows' && '${{ inputs.os }}' == 'windows-2022'){
                 if(${{ inputs.node }} <23){
                   fs.writeFileSync('release/win32/ia32/${{ inputs.node }}/node.version', '${{ steps.node-test-version.outputs.node-version }}');
                 }
+              }
+              else if('${{ runner.os }}' == 'Windows' && '${{ inputs.os }}' == 'windows-2025'){
                 fs.writeFileSync('release/win32/x64/${{ inputs.node }}/node.version', '${{ steps.node-test-version.outputs.node-version }}');
                 if(${{ inputs.node }} >=20){
                   fs.writeFileSync('release/win32/arm64/${{ inputs.node }}/node.version', '${{ steps.node-test-version.outputs.node-version }}');
                 }
               }
-              else if('${{ runner.os }}' == 'macOS' && '${{ inputs.os }}' != 'macos-13'){
+              else if('${{ runner.os }}' == 'macOS' && '${{ inputs.os }}' == 'macos-15'){
                 fs.writeFileSync(`release/${process.platform}/arm64/${{ inputs.node }}/node.version`, '${{ steps.node-test-version.outputs.node-version }}');
               }
               else if('${{ runner.os }}' == 'macOS' && '${{ inputs.os }}' == 'macos-13'){
@@ -103,7 +116,7 @@ runs:
           key: '${{ inputs.os }}-${{ inputs.node}}'
 
       - name: Build ia32
-        if: (runner.os == 'Windows') && (inputs.node <23)
+        if: (inputs.os == 'windows-2022') && (inputs.node <23)
         uses: ./.github/actions/build
         with:
           node: ${{ steps.node-test-version.outputs.node-version }}
@@ -111,7 +124,7 @@ runs:
           arch: 'ia32'
 
       - name: Build arm64
-        if: inputs.os != 'macos-13' && (inputs.node >=20 || inputs.os  == 'macos-15')
+        if: inputs.os != 'macos-13' && inputs.os != 'windows-2022' && (inputs.node >=20 || inputs.os  == 'macos-15')
         uses: ./.github/actions/build
         with:
           node: ${{ steps.node-test-version.outputs.node-version }}
@@ -120,16 +133,15 @@ runs:
 
       - name: Build x64
         uses: ./.github/actions/build
-        if: (runner.os == 'Windows') || (inputs.os  == 'macos-13')
+        if: (inputs.os == 'windows-2025') || (inputs.os  == 'macos-13')
         with:
           node: ${{ steps.node-test-version.outputs.node-version }}
           node-major: ${{ inputs.node }}
           arch: 'x64'
-
     
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        if: runner.os == 'Windows' && success()
+        if: inputs.os == 'windows-2025' && success()
         with:
           name: win32-edge-js-${{ inputs.node }}
           path: |
@@ -137,17 +149,25 @@ runs:
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        if: runner.os  == 'macOS' && inputs.os  == 'macos-15' && success()
+        if: inputs.os == 'windows-2022' && success()
         with:
-          name: darwin-arm64-edge-js-${{ inputs.node }}
+          name: win32-edge-js-ia32-${{ inputs.node }}
           path: |
             release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
-        if: runner.os  == 'macOS' && inputs.os  == 'macos-13' && success()
+        if: inputs.os  == 'macos-15' && success()
         with:
-          name: darwin-x64-edge-js-${{ inputs.node }}
+          name: darwin-edge-js-arm64-${{ inputs.node }}
+          path: |
+            release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: inputs.os  == 'macos-13' && success()
+        with:
+          name: darwin-edge-js-x64-${{ inputs.node }}
           path: |
             release
 

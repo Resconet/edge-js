@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     name: build node-16 ${{ matrix.os }}
     steps:
@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     name: build node-18 ${{ matrix.os }}
     steps:
@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     name: build node-20 ${{ matrix.os }}
     steps:
@@ -72,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     name: build node-22 ${{ matrix.os }}
     steps:
@@ -90,7 +90,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     name: build node-23 ${{ matrix.os }}
     steps:
@@ -103,12 +103,32 @@ jobs:
         with:
           node: 23
           os: ${{ matrix.os }}
+
+  upload-artifacts:
+    runs-on: ubuntu-latest
+    needs: [build-16, build-18, build-20, build-22, build-23]
+    # needs: [build-20, build-22]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+
+    name: upload artifcts
+    steps:
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact/merge@v4
+        if: success()
+        with:
+          name: edge-js
   
   test-16:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     needs: build-16
 
@@ -128,7 +148,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     needs: build-18
 
@@ -148,7 +168,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     needs: build-20
 
@@ -168,7 +188,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     needs: build-22
 
@@ -188,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-       os: [windows-2022, macos-13, macos-15]
+       os: [windows-2022, windows-2025, macos-13, macos-15]
     runs-on: ${{ matrix.os }}
     needs: build-23
 
