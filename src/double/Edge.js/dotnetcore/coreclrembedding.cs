@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Numerics;
 using System.Security.Policy;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable InconsistentNaming
@@ -245,7 +246,7 @@ public class CoreCLREmbedding
             DebugMessage("EdgeAssemblyResolver::LoadDependencyManifest (CLR) - Finished");
         }
         
-        private void AddDependencies(DependencyContext dependencyContext, bool standalone)
+        private void AddDependencies(DependencyContext dependencyContext, bool standalone, bool compilerDependencies = false)
         {
             DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Adding dependencies for: {0}, standalone: {1}", dependencyContext.Target.Framework, standalone);
 
@@ -282,7 +283,7 @@ public class CoreCLREmbedding
                 {
                     string assetPath = assets[0];
                     
-                    var assemblyPath = ResolveAssemblyPath(assetPath, runtimeLibrary.Version, runtimeLibrary.Type, standalone);
+                    var assemblyPath = ResolveAssemblyPath(assetPath, runtimeLibrary.Version, runtimeLibrary.Type, standalone, compilerDependencies);
 
                     if (!_libraries.ContainsKey(runtimeLibrary.Name))
                     {
@@ -314,7 +315,7 @@ public class CoreCLREmbedding
             }
         }
 
-        private string ResolveAssemblyPath(string libraryName, string libraryVersion, string libraryType, bool standalone)
+        private string ResolveAssemblyPath(string libraryName, string libraryVersion, string libraryType, bool standalone, bool compilerDependencies = false)
         {
             var runtimePath = Path.GetDirectoryName(RuntimeEnvironment.RuntimePath);
             var assemblyPath = libraryName.Replace('/', Path.DirectorySeparatorChar);
@@ -341,17 +342,33 @@ public class CoreCLREmbedding
             }
             else 
             {
-                assemblyPath = Path.Combine(_packagesPath, libraryName.ToLower(), libraryVersion, normalizedPath.ToLower());
+                
+                // Try to load from Edge.js compiler
+                if (compilerDependencies)
+                {
+                    foreach (var knownPath in _knownPaths)
+                    {
+                        assemblyPath = Path.Combine(knownPath, Path.GetFileName(normalizedPath));
+                        if(File.Exists(assemblyPath)) break;
+                    }
+                }
+
+                // Try to load from nuget packages
                 if(!File.Exists(assemblyPath))
                 {
-                    assemblyPath = Path.Combine(_packagesPath, libraryName.ToLower(), libraryVersion, normalizedPath);
+                    assemblyPath = Path.Combine(_packagesPath, Path.GetFileNameWithoutExtension(libraryName.ToLower()) , libraryVersion,  normalizedPath.ToLower());
                 }
-                if(!File.Exists(assemblyPath) && File.Exists(Path.Combine(RuntimeEnvironment.ApplicationDirectory, Path.GetFileName(normalizedPath))))
+                if(!File.Exists(assemblyPath))
+                {
+                    assemblyPath = Path.Combine(_packagesPath, Path.GetFileNameWithoutExtension(libraryName.ToLower()) , libraryVersion, normalizedPath);
+                }
+                // Try to load from application directory
+                if(!File.Exists(assemblyPath))
                 {
                     assemblyPath = Path.Combine(RuntimeEnvironment.ApplicationDirectory, Path.GetFileName(normalizedPath));
                 }
             }
-            
+            // Try to load from dotnet runtime directory
             if (!File.Exists(assemblyPath) && !string.IsNullOrEmpty(runtimePath))
             {
                 assemblyPath = Path.Combine(runtimePath, Path.GetFileName(assemblyPath));
@@ -483,19 +500,19 @@ public class CoreCLREmbedding
             return asset;
         }
 
-        private void AddCompileDependencies(DependencyContext dependencyContext, bool standalone)
+        private void AddCompileDependencies(DependencyContext dependencyContext, bool standalone, bool compilerDependencies = false)
         {
             foreach (CompilationLibrary compileLibrary in dependencyContext.CompileLibraries)
             {
-                if (compileLibrary.Assemblies.Count == 0 || CompileAssemblies.ContainsKey(compileLibrary.Name))
+                if ((compileLibrary.Assemblies.Count == 0 || CompileAssemblies.ContainsKey(compileLibrary.Name)) && !compilerDependencies)
                 {
                     continue;
                 }
                 
                 DebugMessage("EdgeAssemblyResolver::AddDependencies (CLR) - Processing compile assembly {1} {0} {2}", compileLibrary.Name, compileLibrary.Type, compileLibrary.Assemblies[0]);
-                var assemblyPath = ResolveAssemblyPath(compileLibrary.Assemblies[0], compileLibrary.Version, compileLibrary.Type, standalone);
+                var assemblyPath = ResolveAssemblyPath(compileLibrary.Assemblies[0], compileLibrary.Version, compileLibrary.Type, standalone, compilerDependencies);
 
-                if (!CompileAssemblies.ContainsKey(compileLibrary.Name))
+                if (!CompileAssemblies.ContainsKey(compileLibrary.Name) && !compilerDependencies)
                 {
                     if (File.Exists(assemblyPath))
                     {
@@ -554,6 +571,9 @@ public class CoreCLREmbedding
 
         internal void AddCompiler(string bootstrapDependencyManifest)
         {
+            var compilerPath = Path.GetDirectoryName(bootstrapDependencyManifest);
+            AddAssemblyPath(compilerPath);
+
             DebugMessage("EdgeAssemblyResolver::AddCompiler (CLR) - Adding compiler from dependency manifest file {0}", bootstrapDependencyManifest);
 
             DependencyContextJsonReader dependencyContextReader = new DependencyContextJsonReader();
@@ -564,7 +584,7 @@ public class CoreCLREmbedding
 
                 DebugMessage("EdgeAssemblyResolver::AddCompiler (CLR) - Adding dependencies for compiler");
 
-                AddDependencies(compilerDependencyContext, false);
+                AddDependencies(compilerDependencyContext, false, true);
 
                 DebugMessage("EdgeAssemblyResolver::AddCompiler (CLR) - Finished");
             }
@@ -727,23 +747,36 @@ public class CoreCLREmbedding
 
             IDictionary<string, object> options = (IDictionary<string, object>)MarshalV8ToCLR(v8Options, (V8Type)payloadType);
             string compiler = (string)options["compiler"];
+            string boostrapDeps = (string)options["bootstrapDependencyManifest"];
 
             MethodInfo compileMethod;
             Type compilerType;
             DebugMessage("CoreCLREmbedding::CompileFunc (CLR) - Compiler loading {0} assembly", compiler);
-            
+            DebugMessage("CoreCLREmbedding::CompileFunc (CLR) - bootstrapDependencyManifest {0}", boostrapDeps);
+
             if (!Compilers.ContainsKey(compiler))
             {
                 if (DependencyContext.Default == null || !DependencyContext.Default.RuntimeLibraries.Any(l => l.Name == compiler))
                 {
-                    if (!File.Exists(options["bootstrapDependencyManifest"].ToString()))
+                    if (!File.Exists(boostrapDeps))
                     {
-                        throw new Exception(
-                            String.Format(
-                                "Compiler package {0} was not found in the application dependency manifest and no bootstrap dependency manifest was found for the compiler.  Make sure that you either have {0} in your project.json or, if you do not have a project.json, that you have the .NET Core SDK installed.", compiler));
+                        // Handle case when compiler path is specified through env variable
+                        if(Path.GetDirectoryName(compiler) != Path.GetDirectoryName(boostrapDeps))
+                        {
+                            boostrapDeps = Path.GetDirectoryName(compiler) + Path.DirectorySeparatorChar + Path.GetFileName(boostrapDeps);
+                            DebugMessage("CoreCLREmbedding::CompileFunc (CLR) - bootstrapDependencyManifest {0}", boostrapDeps);
+                        }
+
+                        if (!File.Exists(boostrapDeps))
+                        {
+                            throw new Exception(
+                                String.Format(
+                                    "Compiler package {0} was not found in the application dependency manifest and no bootstrap dependency manifest was found for the compiler.",
+                                    compiler));
+                        }
                     }
 
-                    Resolver.AddCompiler(options["bootstrapDependencyManifest"].ToString());
+                    Resolver.AddCompiler(boostrapDeps);
                 }
 
                 Assembly compilerAssembly;
@@ -1262,6 +1295,7 @@ public class CoreCLREmbedding
 
         else
         {
+            DebugMessage("CoreCLREmbedding::MarshalCLRToV8 (CLR) - clrObject: {0}", clrObject.GetType().FullName);
             v8Type = clrObject is Exception
                 ? V8Type.Exception
                 : V8Type.Object;
@@ -1289,7 +1323,6 @@ public class CoreCLREmbedding
             List<Tuple<string, Func<object, object>>> propertyAccessors = GetPropertyAccessors(clrObject.GetType());
             V8ObjectData objectData = new V8ObjectData();
             int counter = 0;
-
             objectData.propertiesCount = propertyAccessors.Count;
             objectData.propertyNames = Marshal.AllocCoTaskMem(PointerSize*propertyAccessors.Count);
             objectData.propertyTypes = Marshal.AllocCoTaskMem(sizeof (int)*propertyAccessors.Count);
@@ -1298,24 +1331,25 @@ public class CoreCLREmbedding
             foreach (Tuple<string, Func<object, object>> propertyAccessor in propertyAccessors)
             {
                 Marshal.WriteIntPtr(objectData.propertyNames, counter*PointerSize, Marshal.StringToCoTaskMemUTF8(propertyAccessor.Item1));
-
                 V8Type propertyType;
-                if(clrObject.GetType().FullName.StartsWith("System.Reflection"))
+                if(clrObject.GetType().FullName.StartsWith("System.Reflection") || clrObject.GetType().FullName.StartsWith("Npgsql.NpgsqlParameter"))
                 {
                     propertyType = V8Type.String;
                     Marshal.WriteIntPtr(objectData.propertyValues, counter*PointerSize, Marshal.StringToCoTaskMemUTF8(string.Empty));
-                }else
+                }
+                else
                 {
                     Marshal.WriteIntPtr(objectData.propertyValues, counter*PointerSize, MarshalCLRToV8(propertyAccessor.Item2(clrObject), out propertyType));
                 }
                 Marshal.WriteInt32(objectData.propertyTypes, counter*sizeof (int), (int) propertyType);
                 counter++;
             }
-
+            
             IntPtr destinationPointer = Marshal.AllocCoTaskMem(V8ObjectDataSize);
             Marshal.StructureToPtr(objectData, destinationPointer, false);
 
             return destinationPointer;
+
         }
     }
     
