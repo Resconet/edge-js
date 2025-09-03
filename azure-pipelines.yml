@@ -9,7 +9,7 @@ trigger:
 parameters:
 - name: NodeVersion
   type: string
-  default: 22.18.0
+  default: 22.19.0
   displayName: Node version
 
 - name: BuildConfiguration
@@ -109,11 +109,9 @@ jobs:
       projects: src/double/Edge.js/Edge.js.csproj
       arguments: -c ${{ parameters.BuildConfiguration }} -f net462
 
-  - task: BatchScript@1
+  - script: |
+      node tools/build.js ${{ parameters.NodeVersion }}
     displayName: Build EdgeJS Native Modules
-    inputs:
-      filename: tools/build.bat
-      arguments: ${{ parameters.BuildConfiguration }} ${{ parameters.NodeVersion }}
 
   - script: |
       set ver=${{ parameters.NodeVersion }}
