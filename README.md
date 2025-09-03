@@ -81,7 +81,7 @@ https://github.com/agracio/edge-js-quick-start
 - Windows supports 4 latest LTS or candidate LTS releases (even numbered).
 - Windows supports up to 1 "Current" (odd numbered) release and drops it when superseeded by new LTS candidate.
 - macOS comes precompiled with same releases as Windows. When using Node.js version that is not pre-compiled `edge-js` binaries will be compiled during `npm install` using `node-gyp`.
-- Linux will will always compile `edge-js` binaries during `npm install` using `node-gyp`.
+- Linux will always compile `edge-js` binaries during `npm install` using `node-gyp`.
 
 ### Windows
 
@@ -95,7 +95,7 @@ https://github.com/agracio/edge-js-quick-start
 
 ### macOS binaries pre-compiled for
 
-| Version | x64                | arm64 (M1+)        |
+| Version | x64                | arm64              |
 |---------|--------------------|--------------------|
 | 18.x    | :heavy_check_mark: | :heavy_check_mark: |
 | 20.x    | :heavy_check_mark: | :heavy_check_mark: |
@@ -104,7 +104,7 @@ https://github.com/agracio/edge-js-quick-start
 
 #### Supports
 
-| Version     | x64                | arm64 (M1+)        |
+| Version     | x64                | arm64              |
 |-------------|--------------------|--------------------|
 | 16.x - 24.x | :heavy_check_mark: | :heavy_check_mark: |
 
@@ -113,7 +113,7 @@ https://github.com/agracio/edge-js-quick-start
 
 | Version     | x64                | arm64              |
 |-------------|--------------------|--------------------|
-| 14.x - 24.x | :heavy_check_mark: | :heavy_check_mark: |
+| 16.x - 24.x | :heavy_check_mark: | :heavy_check_mark: |
 
 Other Linux architectures might work but have not been tested.
 
@@ -508,7 +508,7 @@ var func = edge.func(function () {/*
 */});
 
 function helloWorld(){
-    return new Promise<T>((resolve, reject) =>{
+    return new Promise((resolve, reject) =>{
         func({name: 'John', surname: 'Smith'}, function (error, result) {
             if(error) reject(error);
             else resolve(result);
@@ -553,13 +553,13 @@ class Program
 **Dockerfile: [Dockerfile](https://github.com/agracio/edge-js/blob/master/Dockerfile)**  
 **Docker Hub image: [agracio/ubuntu-node-netcore](https://hub.docker.com/repository/docker/agracio/ubuntu-node-netcore)**
 
-* Based on Ununtu 22.04
+* Based on Ununtu 24.04
 * User directory **`devvol`**
 
 #### Pre-installed packages
 
-* Node.js 20
-* dotnet 8
+* Node.js 22
+* dotnet 9
 * git
 * build tools
 * sudo, curl, wget
