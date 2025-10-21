@@ -68,7 +68,7 @@ runs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '8.0.x' # SDK Version to use; x will use the latest version of the 8.0 channel
+        dotnet-version: '9.0.x' # SDK Version to use; x will use the latest version of the 8.0 channel
 
     - if: runner.os == 'macOS' && inputs.node == 16
       shell: bash
@@ -103,7 +103,7 @@ runs:
     #   run: |
     #     sudo apt -q install mono-complete pkg-config libglib2.0-dev
 
-    - uses: actions/checkout@v4
+    # - uses: actions/checkout@v4
     - uses: awalsh128/cache-apt-pkgs-action@latest
       name: Setup Mono
       if: runner.os == 'Linux'

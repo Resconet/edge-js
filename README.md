@@ -1,10 +1,9 @@
 # Edge.js: .NET and Node.js in-process
 <!-- [![Build status][appveyor-image]][appveyor-url] -->
 [![Actions Status][github-img]][github-url]
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/agracio/edge-js.svg?style=shield )](https://dl.circleci.com/status-badge/redirect/gh/agracio/edge-js/tree/master)
 [![Git Issues][issues-img]][issues-url]
 [![Closed Issues][closed-issues-img]][closed-issues-url]
-<!-- [![NPM Downloads][downloads-img]][downloads-url] -->
+<!-- [![CircleCI](https://dl.circleci.com/status-badge/img/gh/agracio/edge-js.svg?style=shield )](https://dl.circleci.com/status-badge/redirect/gh/agracio/edge-js/tree/master) --><!-- [![NPM Downloads][downloads-img]][downloads-url] -->
 <!-- ![Node version](https://img.shields.io/node/v/edge-js.svg) -->
 <!-- [![deps status][dependencies-img]][dependencies-url] -->
 <!--[![MIT license][license-img]][license-url] -->
@@ -91,6 +90,7 @@ https://github.com/agracio/edge-js-quick-start
 | 20.x    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | 22.x    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | 24.x    | :x:                | :heavy_check_mark: | :heavy_check_mark: |
+| 25.x    | :x:                | :heavy_check_mark: | :heavy_check_mark: |
 
 
 ### macOS binaries pre-compiled for
@@ -101,19 +101,20 @@ https://github.com/agracio/edge-js-quick-start
 | 20.x    | :heavy_check_mark: | :heavy_check_mark: |
 | 22.x    | :heavy_check_mark: | :heavy_check_mark: |
 | 24.x    | :heavy_check_mark: | :heavy_check_mark: |
+| 25.x    | :heavy_check_mark: | :heavy_check_mark: |
 
 #### Supports
 
 | Version     | x64                | arm64              |
 |-------------|--------------------|--------------------|
-| 16.x - 24.x | :heavy_check_mark: | :heavy_check_mark: |
+| 16.x - 25.x | :heavy_check_mark: | :heavy_check_mark: |
 
 
 ### Linux
 
 | Version     | x64                | arm64              |
 |-------------|--------------------|--------------------|
-| 16.x - 24.x | :heavy_check_mark: | :heavy_check_mark: |
+| 16.x - 25.x | :heavy_check_mark: | :heavy_check_mark: |
 
 Other Linux architectures might work but have not been tested.
 
