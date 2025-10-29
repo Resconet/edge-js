@@ -75,7 +75,7 @@ function fixBuild(arch) {
     for (const file of files) {
         if (path.extname(file) === '.vcxproj') {
             const filePath = path.join(__dirname, '..', 'build', file);
-            console.log(`Patching ${filePath} for arm64...`);
+            console.log(`Patching ${filePath} for ${arch}...`);
             let data = fs.readFileSync(filePath, 'utf8');
             data = data.replace(/node.lib/g, 'libnode.lib');
             if(arch === 'arm64' && process.platform === 'win32') {
