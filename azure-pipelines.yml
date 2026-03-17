@@ -9,7 +9,7 @@ trigger:
 parameters:
 - name: NodeVersion
   type: string
-  default: 22.22.0
+  default: 24.14.0
   displayName: Node version
 
 - name: BuildConfiguration
@@ -35,34 +35,28 @@ jobs:
   timeoutInMinutes: 0
   workspace:
     clean: all
-  strategy:
-    matrix:
-      x64:
-        arch: x64
-      x86:
-        arch: x86
   steps:
   - checkout: nodejs
     fetchDepth: 1
     fetchTags: false
 
   - task: BatchScript@1
-    displayName: Build NodeJS $(arch)
+    displayName: Build NodeJS
     inputs:
       filename: vcbuild.bat
-      arguments: ${{ parameters.BuildConfiguration }} $(arch) dll
+      arguments: ${{ parameters.BuildConfiguration }} x64 dll
 
   - script: |
       move node.exe $(Build.ArtifactStagingDirectory)
       move libnode.dll $(Build.ArtifactStagingDirectory)
       move libnode.lib $(Build.ArtifactStagingDirectory)
       if ${{ parameters.BuildConfiguration }} == Debug move libnode.pdb $(Build.ArtifactStagingDirectory)
-    displayName: Install NodeJS $(arch) Artifact
+    displayName: Install NodeJS Artifact
     workingDirectory: ${{ parameters.BuildConfiguration }}
 
   - publish: $(Build.ArtifactStagingDirectory)
-    displayName: Publish NodeJS $(arch) Artifact
-    artifact: node-js-$(arch)
+    displayName: Publish NodeJS Artifact
+    artifact: node-js
 
 - job: build_edgejs
   displayName: Build EdgeJS
@@ -82,20 +76,16 @@ jobs:
 
   - script: |
       echo "Install NodeJs libs to %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}"
-      mkdir %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\ia32
-      move /Y $(Pipeline.Workspace)\node-js-x86\libnode.lib %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\ia32
       mkdir %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
-      move /Y $(Pipeline.Workspace)\node-js-x64\libnode.lib %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
-      mkdir lib\native\win32\ia32\${{ parameters.NodeVersion }}
-      move $(Pipeline.Workspace)\node-js-x86\*.* lib\native\win32\ia32\${{ parameters.NodeVersion }}
+      move /Y $(Pipeline.Workspace)\node-js\libnode.lib %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
       mkdir lib\native\win32\x64\${{ parameters.NodeVersion }}
-      move $(Pipeline.Workspace)\node-js-x64\*.* lib\native\win32\x64\${{ parameters.NodeVersion }}
+      move $(Pipeline.Workspace)\node-js\*.* lib\native\win32\x64\${{ parameters.NodeVersion }}
     displayName: Install NodeJS
 
   - task: NodeTool@0
-    displayName: Use Node.js 22.x
+    displayName: Use Node.js 24.x
     inputs:
-      versionSpec: 22.x
+      versionSpec: 24.x
 
   - task: Npm@1
     displayName: Install Dependencies
@@ -117,10 +107,7 @@ jobs:
       set ver=${{ parameters.NodeVersion }}
       copy src\double\Edge.js\bin\${{ parameters.BuildConfiguration }}\net462\EdgeJS.* $(Build.ArtifactStagingDirectory)
       copy lib\*edge.js $(Build.ArtifactStagingDirectory)
-      mkdir $(Build.ArtifactStagingDirectory)\x86
-      copy lib\native\win32\ia32\%ver:~0,2%\*.node $(Build.ArtifactStagingDirectory)\x86
-      mkdir $(Build.ArtifactStagingDirectory)\x64
-      copy lib\native\win32\x64\%ver:~0,2%\*.node $(Build.ArtifactStagingDirectory)\x64
+      copy lib\native\win32\x64\%ver:~0,2%\*.node $(Build.ArtifactStagingDirectory)
     displayName: Install EdgeJS Artifact
 
   - publish: $(Build.ArtifactStagingDirectory)
