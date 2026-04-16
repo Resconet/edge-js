@@ -9,7 +9,7 @@ trigger:
 parameters:
 - name: NodeVersion
   type: string
-  default: 24.14.0
+  default: 24.15.0
   displayName: Node version
 
 - name: BuildConfiguration
@@ -22,94 +22,19 @@ parameters:
 
 resources:
   repositories:
+  - repository: devops
+    type: git
+    name: devops
+    ref: refs/heads/master
+
   - repository: nodejs
     endpoint: Resco GitHub
     name: nodejs/node
     ref: refs/tags/v${{ parameters.NodeVersion }}
     type: github
 
-jobs:
-- job: build_nodejs
-  displayName: Build NodeJS
-  pool: Default
-  timeoutInMinutes: 0
-  workspace:
-    clean: all
-  steps:
-  - checkout: nodejs
-    fetchDepth: 1
-    fetchTags: false
-
-  - task: BatchScript@1
-    displayName: Build NodeJS
-    inputs:
-      filename: vcbuild.bat
-      arguments: ${{ parameters.BuildConfiguration }} x64 dll
-
-  - script: |
-      move node.exe $(Build.ArtifactStagingDirectory)
-      move libnode.dll $(Build.ArtifactStagingDirectory)
-      move libnode.lib $(Build.ArtifactStagingDirectory)
-      if ${{ parameters.BuildConfiguration }} == Debug move libnode.pdb $(Build.ArtifactStagingDirectory)
-    displayName: Install NodeJS Artifact
-    workingDirectory: ${{ parameters.BuildConfiguration }}
-
-  - publish: $(Build.ArtifactStagingDirectory)
-    displayName: Publish NodeJS Artifact
-    artifact: node-js
-
-- job: build_edgejs
-  displayName: Build EdgeJS
-  dependsOn: build_nodejs
-  pool:
-    vmImage: windows-latest
-  steps:
-  - checkout: self
-    fetchDepth: 1
-    fetchTags: false
-
-  - download: current
-    displayName: Download NodeJS Artifacts
-
-  - script: npm install -g node-gyp
-    displayName: Install NodeJS Native Addon Tool
-
-  - script: |
-      echo "Install NodeJs libs to %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}"
-      mkdir %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
-      move /Y $(Pipeline.Workspace)\node-js\libnode.lib %LOCALAPPDATA%\node-gyp\Cache\${{ parameters.NodeVersion }}\x64
-      mkdir lib\native\win32\x64\${{ parameters.NodeVersion }}
-      move $(Pipeline.Workspace)\node-js\*.* lib\native\win32\x64\${{ parameters.NodeVersion }}
-    displayName: Install NodeJS
-
-  - task: NodeTool@0
-    displayName: Use Node.js 24.x
-    inputs:
-      versionSpec: 24.x
-
-  - task: Npm@1
-    displayName: Install Dependencies
-    inputs:
-      command: install
-
-  - task: DotNetCoreCLI@2
-    displayName: Build EdgeJS
-    inputs:
-      command: build
-      projects: src/double/Edge.js/Edge.js.csproj
-      arguments: -c ${{ parameters.BuildConfiguration }} -f net462
-
-  - script: |
-      node tools/build.js ${{ parameters.NodeVersion }}
-    displayName: Build EdgeJS Native Modules
-
-  - script: |
-      set ver=${{ parameters.NodeVersion }}
-      copy src\double\Edge.js\bin\${{ parameters.BuildConfiguration }}\net462\EdgeJS.* $(Build.ArtifactStagingDirectory)
-      copy lib\*edge.js $(Build.ArtifactStagingDirectory)
-      copy lib\native\win32\x64\%ver:~0,2%\*.node $(Build.ArtifactStagingDirectory)
-    displayName: Install EdgeJS Artifact
-
-  - publish: $(Build.ArtifactStagingDirectory)
-    displayName: Publish EdgeJS Artifact
-    artifact: edge-js
+extends:
+  template: build-edge-js.yml@devops
+  parameters:
+    NodeVersion: ${{ parameters.NodeVersion }}
+    BuildConfiguration: ${{ parameters.BuildConfiguration }}
