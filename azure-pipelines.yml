@@ -20,6 +20,11 @@ parameters:
   - Release
   - Debug
 
+- name: Publish
+  type: boolean
+  default: true
+  displayName: Publish to feed
+
 resources:
   repositories:
   - repository: devops
@@ -38,3 +43,4 @@ extends:
   parameters:
     NodeVersion: ${{ parameters.NodeVersion }}
     BuildConfiguration: ${{ parameters.BuildConfiguration }}
+    Publish: ${{ parameters.Publish }}
