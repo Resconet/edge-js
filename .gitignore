@@ -74,20 +74,9 @@ tools/nuget.exe
 
 *test-results*.*
 TemporaryGeneratedFile*.*
-/lib/native/win32/ia32/*/concrt140.dll
-/lib/native/win32/ia32/*/msvcp140.dll
-/lib/native/win32/ia32/*/vccorlib140.dll
-/lib/native/win32/ia32/*/vcruntime140.dll
-
-/lib/native/win32/x64/*/concrt140.dll
-/lib/native/win32/x64/*/msvcp140.dll
-/lib/native/win32/x64/*/vccorlib140.dll
-/lib/native/win32/x64/*/vcruntime140.dll
-
-/lib/native/win32/arm64/*/concrt140.dll
-/lib/native/win32/arm64/*/msvcp140.dll
-/lib/native/win32/arm64/*/vccorlib140.dll
-/lib/native/win32/arm64/*/vcruntime140.dll
+/lib/native/win32/**/msvcp140.dll
+/lib/native/win32/**/vcruntime140.dll
+/lib/native/win32/**/vcruntime140_1.dll
 
 test/mochawesome-report
 mochawesome-report

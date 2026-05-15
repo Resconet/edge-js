@@ -48,10 +48,9 @@ if (process.platform === 'win32') {
 	}
 
 	const redist = [
-        'concrt140.dll',
         'msvcp140.dll',
-        'vccorlib140.dll',
         'vcruntime140.dll',
+        'vcruntime140_1.dll'
 	];
 
 	const dest32dirs = getDestDirs(lib32bit);
