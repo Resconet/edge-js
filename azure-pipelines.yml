@@ -9,7 +9,7 @@ trigger:
 parameters:
 - name: NodeVersion
   type: string
-  default: 24.15.0
+  default: 24.16.0
   displayName: Node version
 
 - name: BuildConfiguration
@@ -19,6 +19,11 @@ parameters:
   values:
   - Release
   - Debug
+
+- name: Publish
+  type: boolean
+  default: true
+  displayName: Publish to feed
 
 resources:
   repositories:
@@ -38,3 +43,4 @@ extends:
   parameters:
     NodeVersion: ${{ parameters.NodeVersion }}
     BuildConfiguration: ${{ parameters.BuildConfiguration }}
+    Publish: ${{ parameters.Publish }}
