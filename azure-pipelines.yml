@@ -9,7 +9,7 @@ trigger:
 parameters:
 - name: NodeVersion
   type: string
-  default: 24.17.0
+  default: 24.18.0
   displayName: Node version
 
 - name: BuildConfiguration
