@@ -9,7 +9,7 @@ trigger:
 parameters:
 - name: NodeVersion
   type: string
-  default: 24.18.0
+  default: 24.18.1
   displayName: Node version
 
 - name: BuildConfiguration
@@ -22,7 +22,7 @@ parameters:
 
 - name: Publish
   type: boolean
-  default: true
+  default: false
   displayName: Publish to feed
 
 resources:
