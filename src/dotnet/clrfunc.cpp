@@ -12,7 +12,11 @@ NAN_METHOD(clrFuncProxy)
     DBG("clrFuncProxy");
     Nan::HandleScope scope;
     v8::Local<v8::External> correlator = v8::Local<v8::External>::Cast(info[2]);
+#ifdef V8_EXTERNAL_POINTER_TAG_COUNT
+    ClrFuncWrap* wrap = (ClrFuncWrap*)(correlator->Value(v8::kExternalPointerTypeTagDefault));
+#else
     ClrFuncWrap* wrap = (ClrFuncWrap*)(correlator->Value());
+#endif
     ClrFunc^ clrFunc = wrap->clrFunc;
     info.GetReturnValue().Set(clrFunc->Call(info[0], info[1]));
 }
@@ -363,7 +367,7 @@ v8::Local<v8::Value> ClrFunc::MarshalCLRExceptionToV8(System::Exception^ excepti
 
     // Construct an error that is just used for the prototype - not verify efficient
     // but 'typeof Error' should work in JavaScript
-#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION >= 14)
+#if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION == 14 && (!defined(V8_MINOR_VERSION) || V8_MINOR_VERSION < 7)
     result->SetPrototypeV2(Nan::GetCurrentContext(), v8::Exception::Error(message));
 #else
     result->SetPrototype(Nan::GetCurrentContext(), v8::Exception::Error(message));
